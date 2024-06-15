@@ -1,0 +1,2 @@
+# Core runtime dependencies for Cybersecurity Homelab automation scripts
+pyyaml>=6.0

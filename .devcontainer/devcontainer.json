@@ -1,0 +1,28 @@
+{
+  "name": "Cybersecurity Homelab (Online Free Environment)",
+  "image": "mcr.microsoft.com/devcontainers/python:3.11-bookworm",
+  "features": {},
+  "customizations": {
+    "vscode": {
+      "settings": {
+        "python.defaultInterpreterPath": "/usr/local/bin/python",
+        "python.testing.pytestEnabled": true,
+        "python.testing.pytestArgs": ["tests"],
+        "python.testing.unittestEnabled": false,
+        "editor.formatOnSave": true,
+        "terminal.integrated.defaultProfile.linux": "bash"
+      },
+      "extensions": [
+        "ms-python.python",
+        "ms-python.vscode-pylance",
+        "charliermarsh.ruff",
+        "timonwong.shellcheck",
+        "yzhang.markdown-all-in-one",
+        "bierner.markdown-mermaid",
+        "github.vscode-github-actions"
+      ]
+    }
+  },
+  "postCreateCommand": "bash .devcontainer/setup.sh",
+  "remoteUser": "vscode"
+}
