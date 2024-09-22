@@ -1,0 +1,63 @@
+%YAML 1.1
+---
+# Suricata Configuration Template for Cybersecurity Homelab
+# Optimized for passive inspection on isolated bridge interfaces
+
+default-log-dir: /var/log/suricata
+
+stats:
+  enabled: yes
+  interval: 30sec
+
+outputs:
+  - fast:
+      enabled: yes
+      filename: fast.log
+      append: yes
+
+  - eve-log:
+      enabled: yes
+      filetype: regular
+      filename: eve.json
+      types:
+        - alert:
+            payload: yes
+            payload-buffer-size: 4kb
+            payload-printable: yes
+            packet: yes
+            metadata: yes
+            tagged-packets: yes
+        - http:
+            extended: yes
+        - dns:
+            query: yes
+            answer: yes
+        - tls:
+            extended: yes
+        - files:
+            force-magic: yes
+        - drop:
+            alerts: yes
+        - ssh
+        - flow
+
+af-packet:
+  - interface: lo
+    threads: auto
+    cluster-id: 99
+    cluster-type: cluster_flow
+    defrag: yes
+
+rule-files:
+  - /var/lib/suricata/rules/local.rules
+
+vars:
+  address-groups:
+    HOME_NET: "[172.20.0.0/16,127.0.0.1/32]"
+    EXTERNAL_NET: "!$HOME_NET"
+    HTTP_SERVERS: "$HOME_NET"
+    SSH_SERVERS: "$HOME_NET"
+
+  port-groups:
+    HTTP_PORTS: "80,3000,8080"
+    SSH_PORTS: "22"

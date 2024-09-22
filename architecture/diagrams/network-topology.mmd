@@ -1,0 +1,26 @@
+flowchart LR
+    subgraph Host_System["Linux Host Physical / VM Boundary"]
+        subgraph Subnet["Isolated Bridge Network (homelab-isolated-net: 172.20.0.0/16)"]
+            Gateway["Bridge Gateway<br/>172.20.0.1"]
+
+            Attacker["Simulation Node<br/>(Kali / Attacker Container)<br/>IP: 172.20.0.99"]
+            
+            JuiceShop["Target: OWASP Juice Shop<br/>IP: 172.20.0.20<br/>Port: 3000 (Localhost only)"]
+
+            FedoraNode["Monitored Endpoint<br/>(Fedora Linux + Wazuh Agent)<br/>IP: 172.20.0.30<br/>Services: SSH (22), auditd"]
+
+            WazuhNode["Wazuh SIEM Manager<br/>IP: 172.20.0.10<br/>Ports: 1514 (Agent), 55000 (API), 443 (Dashboard)"]
+
+            SuricataNode["Suricata IDS Sensor<br/>Promiscuous Interface Mode<br/>Monitors veth / br-homelab"]
+        end
+
+        subgraph Host_Firewall["Host Firewall & Isolation Policy"]
+            IPTables["iptables / nftables Rules<br/>- Block outbound to WAN<br/>- Bind sensitive ports to 127.0.0.1<br/>- Prevent LAN lateral routing"]
+        end
+    end
+
+    Attacker -->|"Attack Traffic"| JuiceShop
+    Attacker -->|"Probe & SSH"| FedoraNode
+    SuricataNode -.->|"Passive Packet Inspection"| Subnet
+    FedoraNode -->|"Telemetry Feed (TCP 1514)"| WazuhNode
+    Gateway --- Host_Firewall

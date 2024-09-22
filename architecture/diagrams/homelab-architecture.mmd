@@ -1,0 +1,53 @@
+flowchart TD
+    subgraph Attacker_Zone["Attacker Environment"]
+        Attacker["Attacker Host / Kali Linux"]
+        SimScripts["Attack Simulation Scripts<br/>(SSH, Nmap, Web, FIM)"]
+        Attacker --> SimScripts
+    end
+
+    subgraph Network_Boundary["Isolated Lab Network (172.20.0.0/16)"]
+        direction TB
+
+        subgraph Network_Monitoring["Network Sensor"]
+            Suricata["Suricata IDS Engine<br/>(Traffic Analysis & Signature Match)"]
+            EveLog["Suricata Log (eve.json)"]
+            Suricata --> EveLog
+        end
+
+        subgraph Targets["Monitored Lab Infrastructure"]
+            FedoraEndpoint["Fedora Linux Endpoint<br/>(Monitored System)"]
+            JuiceShop["OWASP Juice Shop<br/>(Vulnerable Web App Target)"]
+            Auditd["auditd & System Logs<br/>(/var/log/secure, audit.log)"]
+            WazuhAgent["Wazuh Agent<br/>(Log Collector & FIM Syscheck)"]
+
+            FedoraEndpoint --> Auditd
+            Auditd --> WazuhAgent
+        end
+
+        subgraph SIEM_Stack["Wazuh SIEM & Detection Engineering"]
+            WazuhManager["Wazuh Manager<br/>(Decoders, Rules & Analysis Engine)"]
+            WazuhIndexer["Wazuh Indexer<br/>(Elasticsearch Document Store)"]
+            WazuhDashboard["Wazuh Dashboard<br/>(Web UI & Visualization)"]
+
+            WazuhManager --> WazuhIndexer
+            WazuhIndexer --> WazuhDashboard
+        end
+    end
+
+    subgraph SOC_Operations["SOC Analyst Operations"]
+        SOCAnalyst["SOC Analyst / Shiva Sathvik"]
+        Investigation["Incident Triage & Response Runbook"]
+        CustomScripts["Python Automation Tools<br/>(log_analyzer.py, integrity_monitor.py)"]
+
+        SOCAnalyst --> WazuhDashboard
+        SOCAnalyst --> CustomScripts
+        SOCAnalyst --> Investigation
+    end
+
+    %% Traffic and Telemetry Flows
+    SimScripts -->|"Simulated Attacks (SSH, Scan, Payloads)"| FedoraEndpoint
+    SimScripts -->|"Web Attacks (SQLi, XSS, Path Traversal)"| JuiceShop
+    SimScripts -.->|"Monitored Network Traffic (Mirror/Bridge)"| Suricata
+    EveLog -.->|"Network Alerts & EVE Telemetry"| WazuhManager
+    WazuhAgent -->|"Encrypted Agent Telemetry (Port 1514)"| WazuhManager
+    CustomScripts -->|"Direct Host Triage & Baseline Diff"| FedoraEndpoint

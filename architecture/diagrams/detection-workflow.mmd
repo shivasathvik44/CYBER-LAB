@@ -1,0 +1,19 @@
+sequenceDiagram
+    autonumber
+    actor Attacker as Attacker Simulation
+    participant Target as Fedora Endpoint / Target App
+    participant Kernel as Linux Kernel / Network Interface
+    participant Sensor as Wazuh Agent / Suricata IDS
+    participant SIEM as Wazuh Manager & Indexer
+    actor Analyst as SOC Analyst (Shiva Sathvik)
+
+    Attacker->>Target: 1. Execute attack technique (e.g., SSH brute force, FIM tampering)
+    Target->>Kernel: 2. Kernel captures syscalls & network sockets
+    Kernel->>Sensor: 3. auditd, /var/log/secure & packet capture trigger
+    Sensor->>Sensor: 4. Local parsing & hash comparison (FIM / Suricata rules)
+    Sensor->>SIEM: 5. Forward structured telemetry / alerts (TLS Port 1514)
+    SIEM->>SIEM: 6. Decoder extraction, rule evaluation & correlation
+    SIEM->>SIEM: 7. Alert indexation & MITRE ATT&CK mapping
+    Analyst->>SIEM: 8. Triage dashboard alert & review event timeline
+    Analyst->>Target: 9. Execute Python automation (log_analyzer.py, integrity_monitor.py)
+    Analyst->>Analyst: 10. Generate Incident Response Report & apply remediation
