@@ -5,7 +5,7 @@
       "path": "backdoor.sh",
       "sha256": "2e3d25e589b74ddb7c9693609717ef785e685a0115d4fe6b53f8dca80d8d3225",
       "size_bytes": 93,
-      "modified_time_iso": "2026-11-14T16:59:08.892090+00:00"
+      "modified_time_iso": "2026-11-15T18:54:56.353349+00:00"
     }
   ],
   "modified": [
@@ -14,7 +14,7 @@
         "path": "config.ini",
         "sha256": "d3cbe753a3da523ffce4df07434393a5bc495266656fa4d02233ca2f130a2c4c",
         "size_bytes": 139,
-        "modified_time_iso": "2026-11-14T16:59:08.887090+00:00"
+        "modified_time_iso": "2026-11-15T18:54:56.352349+00:00"
       },
       "expected_sha256": "aa2c0bd12d680ce2c9bd319475e1cc0f0893e7ff675bf9edbcaf36d20f07d170"
     }
@@ -24,7 +24,7 @@
       "path": "policy.json",
       "sha256": "1aae3db7a77002d51a81261247fccadbbedda06d56e9a87d1df797d0c525e3a5",
       "size_bytes": 83,
-      "modified_time_iso": "2026-11-14T16:59:08.515083+00:00"
+      "modified_time_iso": "2026-11-15T18:54:56.224347+00:00"
     }
   ],
   "unchanged_count": 1,

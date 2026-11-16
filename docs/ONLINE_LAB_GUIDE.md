@@ -153,34 +153,44 @@ rm -rf my_test_lab my_baseline.json
 
 ---
 
-## 5. Experiment 2: Authentication Log Triage
+## 5. Experiment 2: SSH Brute-Force & Authentication Log Analysis
 
-In an enterprise SOC, analysts frequently analyze authentication logs to identify brute-force attacks and password spraying.
+In an enterprise SOC, analysts frequently analyze OpenSSH event streams to identify credential stuffing, brute-force dictionary attacks, horizontal password spraying, and compromised host logins.
 
-Run the log analyzer against a sample log:
+### Option A: Automated Single-Command Demonstration
+Run the 7-step automated analysis pipeline:
+
 ```bash
-# Create a sample authentication log
-cat << 'EOF' > /tmp/sample_auth.log
-Nov 14 10:00:01 web01 sshd[1001]: Failed password for invalid user admin from 192.168.1.105 port 49152 ssh2
-Nov 14 10:00:03 web01 sshd[1002]: Failed password for invalid user admin from 192.168.1.105 port 49154 ssh2
-Nov 14 10:00:05 web01 sshd[1003]: Failed password for root from 192.168.1.105 port 49156 ssh2
-Nov 14 10:00:07 web01 sshd[1004]: Failed password for user1 from 192.168.1.105 port 49158 ssh2
-Nov 14 10:00:09 web01 sshd[1005]: Failed password for test from 192.168.1.105 port 49160 ssh2
-Nov 14 10:00:11 web01 sshd[1006]: Failed password for guest from 192.168.1.105 port 49162 ssh2
-Nov 14 10:00:15 web01 sshd[1007]: Accepted password for deploy from 10.0.0.15 port 51230 ssh2
-EOF
-
-# Triage using the analyzer
-python3 scripts/log_analyzer.py --file /tmp/sample_auth.log --threshold 5
-
-# Export as JSON
-python3 scripts/log_analyzer.py --file /tmp/sample_auth.log --threshold 5 --json
+bash scenarios/01-ssh-bruteforce/run_demo.sh
 ```
 
-Clean up:
+Or use the shortcut:
 ```bash
-rm -f /tmp/sample_auth.log
+bash scripts/run_ssh_demo.sh
 ```
+
+**What the demo proves**:
+1. Analyzes simulated RFC 5737 OpenSSH events without root privileges or VM setups.
+2. Detects high-volume brute-force attacks (`198.51.100.10`: 12 failures targeting `admin` & `root`).
+3. Detects horizontal password spraying across multiple user accounts (`203.0.113.45`: 6 distinct accounts).
+4. Emits critical compromise warnings when repeated failures are followed by an accepted login (`198.51.100.77`: `SUCCESS_AFTER_FAILURES`).
+5. Demonstrates threshold tuning comparisons across thresholds 3, 5, and 10, highlighting false-positive vs. false-negative tradeoffs.
+6. Exports structured forensic JSON reports to `evidence/alert-exports/ssh_bruteforce_report.json`.
+
+### Option B: Hands-On Manual Execution
+```bash
+# 1. Run with standard balanced threshold (5)
+python3 scripts/log_analyzer.py -f scenarios/01-ssh-bruteforce/sample_auth.log --threshold 5
+
+# 2. Run with spray threshold detection
+python3 scripts/log_analyzer.py -f scenarios/01-ssh-bruteforce/sample_auth.log --threshold 10 --spray-threshold 3
+
+# 3. Export structured JSON triage report
+python3 scripts/log_analyzer.py -f scenarios/01-ssh-bruteforce/sample_auth.log --threshold 5 --json -o evidence/alert-exports/ssh_bruteforce_report.json
+```
+
+> [!TIP]
+> For the complete technical writeup and MITRE ATT&CK mapping, read [docs/experiments/01-ssh-bruteforce.md](experiments/01-ssh-bruteforce.md).
 
 ---
 

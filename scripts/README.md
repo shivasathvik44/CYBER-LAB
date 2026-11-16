@@ -8,19 +8,24 @@ This directory houses production-ready, standalone security automation scripts d
 
 | Script | Purpose | Language | Requirements |
 |--------|---------|----------|--------------|
-| `log_analyzer.py` | Detect repeated authentication failures and brute-force IPs | Python 3.10+ | Standard Library |
+| `log_analyzer.py` | Detect brute-force attacks, password spraying, and post-failure compromises | Python 3.10+ | Standard Library |
 | `integrity_monitor.py` | Create and verify SHA-256 cryptographic baselines (FIM) | Python 3.10+ | Standard Library |
 | `health_check.sh` | Validate container runtimes, RAM, disk space, and open ports | Bash | Standard GNU coreutils |
+| `run_ssh_demo.sh` | Shortcut wrapper to execute Phase 2 SSH brute-force analysis demonstration | Bash | Bash, Python 3 |
+| `run_fim_demo.sh` | Shortcut wrapper to execute Phase 1 File Integrity Monitoring demonstration | Bash | Bash, Python 3 |
 
 ---
 
 ## 1. Authentication Log Analyzer (`log_analyzer.py`)
 
 ### Features
-- Analyzes `/var/log/secure` (Fedora/RHEL) and `/var/log/auth.log` (Debian/Ubuntu).
+- Analyzes `/var/log/secure` (Fedora/RHEL), `/var/log/auth.log` (Debian/Ubuntu), and sample log streams.
 - Identifies and aggregates failed password attempts by source IP address.
+- Detects **High-Volume Brute Force** (`SSH_BRUTE_FORCE`) exceeding configurable attempt thresholds.
+- Detects **Horizontal Password Spraying** (`PASSWORD_SPRAYING`) across configurable distinct account thresholds.
+- Detects **Compromise Warnings** (`SUCCESS_AFTER_FAILURES`): Flags successful logins following repeated failures.
 - Tracks targeted usernames and timestamps (first seen / last seen).
-- Supports configurable detection thresholds.
+- Supports both positional file arguments and `-f/--file` flags.
 - Outputs clean ASCII summary tables or structured JSON for SIEM forwarding.
 - Handles missing files, malformed log lines, and permission errors gracefully.
 
@@ -30,10 +35,10 @@ This directory houses production-ready, standalone security automation scripts d
 python3 scripts/log_analyzer.py --file /var/log/secure
 
 # Custom threshold with JSON export
-python3 scripts/log_analyzer.py --file /var/log/secure --threshold 3 --json
+python3 scripts/log_analyzer.py sample_auth.log --threshold 3 --spray-threshold 3 --json
 
 # Save report to a file
-python3 scripts/log_analyzer.py --file sample.log --threshold 5 --output report.txt
+python3 scripts/log_analyzer.py -f sample_auth.log --threshold 5 --output report.json
 ```
 
 ---

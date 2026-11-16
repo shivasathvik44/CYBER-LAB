@@ -32,12 +32,13 @@ A hands-on, portfolio-ready defensive security homelab demonstrating multi-layer
 - [5. Lab Features](#5-lab-features)
 - [6. Security Attack Scenarios](#6-security-attack-scenarios)
 - [7. Hands-On FIM Experiment & Evidence](#7-hands-on-fim-experiment--evidence)
-- [8. Installation & Setup Guide (Local VM / Dedicated Host)](#8-installation--setup-guide-local-vm--dedicated-host)
-- [9. Security Automation Scripts](#9-security-automation-scripts)
-- [10. Lab Evidence & Forensic Artifacts](#10-lab-evidence--forensic-artifacts)
-- [11. Learning Outcomes](#11-learning-outcomes)
-- [12. Future Improvements](#12-future-improvements)
-- [13. Author](#13-author)
+- [8. Hands-On SSH Brute-Force & Log Analysis Experiment](#8-hands-on-ssh-brute-force--log-analysis-experiment)
+- [9. Installation & Setup Guide (Local VM / Dedicated Host)](#9-installation--setup-guide-local-vm--dedicated-host)
+- [10. Security Automation Scripts](#10-security-automation-scripts)
+- [11. Lab Evidence & Forensic Artifacts](#11-lab-evidence--forensic-artifacts)
+- [12. Learning Outcomes](#12-learning-outcomes)
+- [13. Future Improvements](#13-future-improvements)
+- [14. Author](#14-author)
 
 ---
 
@@ -86,18 +87,22 @@ You can run, test, and experiment with this entire defensive laboratory **100% f
 4. **Open Terminal**:
    Press **`Ctrl + \``** (or **`Cmd + \``** on macOS) or navigate to `≡` -> `Terminal` -> `New Terminal`.
 
-5. **Run the Single-Command FIM Experiment**:
+5. **Run the Demonstration Experiments**:
    ```bash
+   # Experiment 1: SSH Brute-Force & Authentication Log Analysis
+   bash scenarios/01-ssh-bruteforce/run_demo.sh
+
+   # Experiment 2: File Integrity Monitoring (FIM)
    bash scenarios/02-file-integrity/run_demo.sh
    ```
 
 To run all automated unit tests:
 ```bash
-pytest -v tests/
+python3 -m unittest discover -s tests -v
 ```
 
 > [!TIP]
-> For the complete beginner walkthrough and manual step-by-step commands, see the [Online Lab Guide](docs/ONLINE_LAB_GUIDE.md).
+> For the complete beginner walkthrough and manual step-by-step commands, see the [Online Lab Guide](docs/ONLINE_LAB_GUIDE.md) and [Experiment Documentation](docs/experiments/01-ssh-bruteforce.md).
 
 ---
 
@@ -385,7 +390,123 @@ Inaccessible Files  : 1
 
 ---
 
-## 8. Installation & Setup Guide (Local VM / Dedicated Host)
+## 8. Hands-On SSH Brute-Force & Log Analysis Experiment
+
+The repository includes a complete offline defensive authentication log analysis suite designed to run in unprivileged container environments (like GitHub Codespaces) without root privileges, virtual machines, or live network traffic.
+
+### Running the Demonstration
+
+In your Codespaces terminal, run:
+
+```bash
+bash scenarios/01-ssh-bruteforce/run_demo.sh
+```
+
+### What this Demonstration Verifies
+
+The experiment systematically executes and verifies 7 core defensive capabilities:
+1. **OpenSSH & PAM Log Parsing**: Extracts authentication attempts, source IPs, usernames, ports, and authentication methods.
+2. **High-Volume Brute-Force Detection**: Flags IPs exceeding volumetric thresholds (e.g. `198.51.100.10` with 12 failures targeting `admin` and `root`).
+3. **Horizontal Password Spraying Detection**: Catches attacks targeting multiple distinct usernames from a single source (`203.0.113.45` targeting 6 accounts: `operator`, `support`, `backup`, `deploy`, `testuser`, `manager`).
+4. **Independent Critical Compromise Warning (`SUCCESS_AFTER_FAILURES`)**: Flags successful logins that were preceded by repeated failures (`198.51.100.77`), alerting analysts to potentially cracked credentials independently of volumetric limits.
+5. **Threshold Tuning Trade-Offs**: Compares detection results across thresholds of **3**, **5**, and **10** failed attempts, illustrating false-positive vs. false-negative dynamics.
+6. **Structured Forensic JSON Export**: Generates SIEM-ready structured JSON alert reports to `evidence/alert-exports/ssh_bruteforce_report.json`.
+7. **Defensive Safety & Offline Isolation**: Operates with 0 root requirements and never modifies production system logs.
+
+### Sensitivity & Threshold Tuning Analysis
+
+| Metric | Threshold = 3 (Aggressive) | Threshold = 5 (Balanced) | Threshold = 10 (Strict Volume) |
+|---|---|---|---|
+| **Total Flagged IPs** | **4** (`198.51.100.10`, `203.0.113.45`, `198.51.100.77`, `192.0.2.80`) | **3** (`198.51.100.10`, `203.0.113.45`, `198.51.100.77`) | **3** (`198.51.100.10`, `203.0.113.45`, `198.51.100.77`) |
+| **`198.51.100.10` (12 fails)** | ✅ `SSH_BRUTE_FORCE` | ✅ `SSH_BRUTE_FORCE` | ✅ `SSH_BRUTE_FORCE` |
+| **`203.0.113.45` (6 user spray)** | ✅ `SSH_BRUTE_FORCE`, `PASSWORD_SPRAYING` | ✅ `SSH_BRUTE_FORCE`, `PASSWORD_SPRAYING` | ✅ `PASSWORD_SPRAYING` (Volume < 10, Spray Caught) |
+| **`198.51.100.77` (Compromise)** | ✅ `SSH_BRUTE_FORCE`, `SUCCESS_AFTER_FAILURES` | ✅ `SSH_BRUTE_FORCE`, `SUCCESS_AFTER_FAILURES` | ✅ `SUCCESS_AFTER_FAILURES` (Volume < 10, Compromise Caught!) |
+| **`192.0.2.80` (4 failures)** | ✅ `SSH_BRUTE_FORCE` | ❌ Suppressed (Noise filtered) | ❌ Suppressed (Noise filtered) |
+| **Operational Impact** | Higher false-positive noise on minor user typos. | Optimal balance for small-to-midsize fleets. | Strict volumetric filtering; decoupled heuristics catch spray and compromise without blindspots. |
+
+### Terminal Output Evidence
+
+```text
+====================================================================================
+CYBERSECURITY HOMELAB - AUTHENTICATION LOG ANALYSIS REPORT
+====================================================================================
+Log Source Path       : scenarios/01-ssh-bruteforce/sample_auth.log
+Threshold Filter      : >= 5 failed attempts
+Spray Threshold       : >= 3 distinct targeted usernames
+Compromise Threshold  : >= 2 failed attempts followed by login
+Total Lines Processed : 47
+Total Failed Logins   : 30
+Suspicious IPs Flagged: 3
+Compromise Warnings   : 1 (Successful login after repeated failures)
+Spray Campaigns Found : 1
+------------------------------------------------------------------------------------
+Source IP          Failures   Success   First Seen       Detections
+------------------------------------------------------------------------------------
+198.51.100.10      12         0         Nov 16 09:00:01  SSH_BRUTE_FORCE
+203.0.113.45       6          0         Nov 16 09:15:00  SSH_BRUTE_FORCE, PASSWORD_SPRAYING
+198.51.100.77      5          1         Nov 16 10:20:01  SSH_BRUTE_FORCE, SUCCESS_AFTER_FAILURES
+------------------------------------------------------------------------------------
+DETECTION DETAILS & TARGETED ACCOUNTS:
+
+[*] Source IP: 198.51.100.77
+    - Failures : 5 | Successes: 1
+    - Targeted Accounts : ubuntu (5)
+    - Authenticated As  : ubuntu (1)
+    - [DETECTED] Failed attempts (5) reached brute-force threshold (5)
+    - [CRITICAL COMPROMISE] CRITICAL: Successful login for account(s) [ubuntu] following 5 failed attempts (repeated failure threshold: 2)
+====================================================================================
+```
+
+### Forensic JSON Report Preview (`evidence/alert-exports/ssh_bruteforce_report.json`)
+
+```json
+{
+  "metadata": {
+    "log_file": "scenarios/01-ssh-bruteforce/sample_auth.log",
+    "threshold": 5,
+    "spray_threshold": 3,
+    "repeat_failure_threshold": 2,
+    "total_lines_processed": 47,
+    "total_failures_detected": 30,
+    "total_successes_detected": 1,
+    "suspicious_ip_count": 3,
+    "compromise_warnings_count": 1,
+    "password_spray_count": 1
+  },
+  "suspicious_ips": [
+    {
+      "source_ip": "198.51.100.77",
+      "total_failures": 5,
+      "targeted_users": {
+        "ubuntu": 5
+      },
+      "first_seen": "Nov 16 10:20:01",
+      "last_seen": "Nov 16 10:20:13",
+      "total_successes": 1,
+      "successful_users": {
+        "ubuntu": 1
+      },
+      "success_after_failure": true,
+      "password_spray": false,
+      "detections": [
+        "SSH_BRUTE_FORCE",
+        "SUCCESS_AFTER_FAILURES"
+      ],
+      "detection_reasons": [
+        "Failed attempts (5) reached brute-force threshold (5)",
+        "CRITICAL: Successful login for account(s) [ubuntu] following 5 failed attempts (repeated failure threshold: 2)"
+      ]
+    }
+  ]
+}
+```
+
+> [!TIP]
+> For the complete technical writeup, regular expressions, and remediation playbooks, see [docs/experiments/01-ssh-bruteforce.md](docs/experiments/01-ssh-bruteforce.md).
+
+---
+
+## 9. Installation & Setup Guide (Local VM / Dedicated Host)
 
 ### 1. Prerequisites
 - Linux Host (Fedora 38+, RHEL 9+, Ubuntu 22.04 LTS).
@@ -446,7 +567,7 @@ python3 -m unittest discover -s tests -v
 
 ---
 
-## 9. Security Automation Scripts
+## 10. Security Automation Scripts
 
 ### 1. Authentication Log Analyzer (`scripts/log_analyzer.py`)
 - Analyzes `/var/log/secure` and `/var/log/auth.log` formats.
@@ -485,7 +606,7 @@ bash scripts/health_check.sh
 
 ---
 
-## 10. Lab Evidence & Forensic Artifacts
+## 11. Lab Evidence & Forensic Artifacts
 
 This repository maintains dedicated evidence directories for live exercise data:
 
@@ -501,7 +622,7 @@ evidence/
 
 ---
 
-## 11. Learning Outcomes
+## 12. Learning Outcomes
 
 Through the design and construction of this homelab, the following skills were developed:
 
@@ -514,7 +635,7 @@ Through the design and construction of this homelab, the following skills were d
 
 ---
 
-## 12. Future Improvements
+## 13. Future Improvements
 
 - [ ] **MITRE ATT&CK Matrix Navigator**: Export homelab detection coverage as a JSON layer for the MITRE ATT&CK Navigator.
 - [ ] **Expanded Custom Wazuh Rules**: Add detection rules for privilege escalation attempts via sudo caching and SUID binaries.
@@ -524,7 +645,7 @@ Through the design and construction of this homelab, the following skills were d
 
 ---
 
-## 13. Author
+## 14. Author
 
 **Shiva Sathvik**  
 *Cybersecurity | Software Engineering | Linux*  

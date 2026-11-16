@@ -141,3 +141,75 @@ Inaccessible Files  : 1
 - **Defensive Control**: In enterprise environments, FIM alerts should trigger automated immutable snapshots and alert SOAR playbooks for instant containment.
 - **Detection Engineering**: To reduce noise, static configuration files should be monitored with high severity, while high-churn log files should be excluded via ignore rules.
 - **Analyst Reflection**: Practiced building and verifying defensive Python tooling entirely in a free online cloud environment with zero infrastructure cost.
+
+---
+
+## Completed Sample Entry: SSH Brute-Force & Log Analysis
+
+# Experiment Log #002: SSH Brute-Force Detection & Authentication Log Analysis
+
+## 1. Overview
+- **Date & Time (UTC)**: 2026-11-16 18:30:00 UTC
+- **Analyst Name**: Shiva Sathvik
+- **Environment**: GitHub Codespaces (Ubuntu 22.04 / Python 3.11 Container)
+- **Target Component**: OpenSSH Authentication Log Analyzer (`scripts/log_analyzer.py`)
+- **Objective**: Detect vertical SSH brute-force attacks, horizontal password spraying, and critical host compromise patterns (`SUCCESS_AFTER_FAILURES`) from simulated RFC 5737 log data without root privileges.
+
+## 2. MITRE ATT&CK Mapping
+- **Tactic**: Credential Access ([TA0006](https://attack.mitre.org/tactics/TA0006/)) & Initial Access ([TA0001](https://attack.mitre.org/tactics/TA0001/))
+- **Technique ID & Name**: [T1110.001 - Password Guessing](https://attack.mitre.org/techniques/T1110/001/) & [T1110.003 - Password Spraying](https://attack.mitre.org/techniques/T1110/003/)
+
+## 3. Commands Executed
+```bash
+# 1. Execute complete reproducible demonstration
+bash scenarios/01-ssh-bruteforce/run_demo.sh
+
+# 2. Run unit tests
+python3 -m unittest discover -s tests -v
+
+# 3. Analyze specific scenario with custom threshold
+python3 scripts/log_analyzer.py -f scenarios/01-ssh-bruteforce/sample_auth.log --threshold 5 --spray-threshold 3
+```
+
+## 4. Expected Results vs. Actual Results
+
+| Test Step | Expected Outcome | Actual Outcome | Status |
+|---|---|---|---|
+| Step 1: Log Parsing | 47 lines processed, 30 failures, 1 accepted login | 47 lines parsed, 30 failures detected, 1 success | PASS |
+| Step 2: Brute-Force Detection | Flag `198.51.100.10` with 12 failures against `admin` & `root` | Flagged `198.51.100.10` with tag `SSH_BRUTE_FORCE` | PASS |
+| Step 3: Password Spraying | Flag `203.0.113.45` targeting 6 distinct usernames | Flagged with tag `PASSWORD_SPRAYING` | PASS |
+| Step 4: Compromise Detection | Flag `198.51.100.77` with 5 failures followed by login | Flagged with critical alert `SUCCESS_AFTER_FAILURES` | PASS |
+| Step 5: Threshold Tuning | Evaluate thresholds 3, 5, 10; decoupled compromise alert | Threshold 3 flags 4 IPs, 5 flags 3 IPs, 10 flags 3 IPs | PASS |
+| Step 6: JSON Export | Structured JSON written to `evidence/alert-exports/` | Valid JSON written to `ssh_bruteforce_report.json` | PASS |
+| Step 7: Offline Non-Root Safety | 0 modifications to `/var/log/auth.log`, runs as standard user | Executed fully unprivileged with 0 system mutations | PASS |
+
+## 5. Evidence & Forensic Artifacts
+- **Terminal Output Snippet**:
+```text
+Source IP          Failures   Success   First Seen       Detections
+------------------------------------------------------------------------------------
+198.51.100.10      12         0         Nov 16 09:00:01  SSH_BRUTE_FORCE
+203.0.113.45       6          0         Nov 16 09:15:00  SSH_BRUTE_FORCE, PASSWORD_SPRAYING
+198.51.100.77      5          1         Nov 16 10:20:01  SSH_BRUTE_FORCE, SUCCESS_AFTER_FAILURES
+------------------------------------------------------------------------------------
+DETECTION DETAILS & TARGETED ACCOUNTS:
+
+[*] Source IP: 198.51.100.77
+    - Failures : 5 | Successes: 1
+    - Targeted Accounts : ubuntu (5)
+    - Authenticated As  : ubuntu (1)
+    - [DETECTED] Failed attempts (5) reached threshold (5)
+    - [CRITICAL COMPROMISE] CRITICAL: Successful login for account(s) [ubuntu] following 5 failed attempts
+```
+- **Generated Report Path**: `evidence/alert-exports/ssh_bruteforce_report.json`
+
+## 6. Key Findings & Analysis
+1. **Vertical vs. Horizontal Signatures**: Vertical brute-force attacks generate high failure counts against a few high-value accounts (`admin`, `root`), whereas password spraying stays below volume thresholds by targeting numerous users horizontally (`operator`, `support`, `backup`, `deploy`, `testuser`, `manager`). Spraying detection requires tracking distinct targeted usernames rather than total failure counts alone.
+2. **Threshold Sensitivity**: A threshold of 3 produces alerts on minor user mistakes (`192.0.2.80` with 4 failures), while a threshold of 10 misses an attacker who successfully breaches an account on the 6th attempt (`198.51.100.77`).
+3. **High-Fidelity Compromise Indicator**: Correlating failure timestamps with subsequent successful logins from the same source IP provides high-confidence evidence of compromised credentials requiring urgent incident response.
+
+## 7. Lessons Learned & Defensive Recommendations
+- **Defensive Control**: Disable password authentication in OpenSSH configuration (`PasswordAuthentication no`) to eliminate password guessing vectors entirely.
+- **Detection Engineering**: Decouple password spraying alerts (username cardinality) from volumetric brute-force thresholds (failure count).
+- **Incident Response Playbook**: When `SUCCESS_AFTER_FAILURES` fires, immediately terminate the active SSH session, revoke keys, rotate credentials, and inspect process trees for spawned interactive shells or command execution.
+

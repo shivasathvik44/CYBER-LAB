@@ -1,0 +1,119 @@
+{
+  "metadata": {
+    "log_file": "/home/capslock/LAB/cybersecurity-homelab/scenarios/01-ssh-bruteforce/sample_auth.log",
+    "threshold": 5,
+    "spray_threshold": 3,
+    "repeat_failure_threshold": 2,
+    "total_lines_processed": 47,
+    "total_failures_detected": 30,
+    "total_successes_detected": 1,
+    "suspicious_ip_count": 3,
+    "compromise_warnings_count": 1,
+    "password_spray_count": 1
+  },
+  "suspicious_ips": [
+    {
+      "source_ip": "198.51.100.10",
+      "total_failures": 12,
+      "targeted_users": {
+        "admin": 6,
+        "root": 6
+      },
+      "first_seen": "Nov 16 09:00:01",
+      "last_seen": "Nov 16 09:00:23",
+      "total_successes": 0,
+      "successful_users": {},
+      "success_after_failure": false,
+      "password_spray": false,
+      "detections": [
+        "SSH_BRUTE_FORCE"
+      ],
+      "detection_reasons": [
+        "Failed attempts (12) reached brute-force threshold (5)"
+      ],
+      "failure_timestamps": [
+        "Nov 16 09:00:01",
+        "Nov 16 09:00:03",
+        "Nov 16 09:00:05",
+        "Nov 16 09:00:07",
+        "Nov 16 09:00:09",
+        "Nov 16 09:00:11",
+        "Nov 16 09:00:13",
+        "Nov 16 09:00:15",
+        "Nov 16 09:00:17",
+        "Nov 16 09:00:19",
+        "Nov 16 09:00:21",
+        "Nov 16 09:00:23"
+      ],
+      "success_timestamps": []
+    },
+    {
+      "source_ip": "203.0.113.45",
+      "total_failures": 6,
+      "targeted_users": {
+        "operator": 1,
+        "support": 1,
+        "backup": 1,
+        "deploy": 1,
+        "testuser": 1,
+        "manager": 1
+      },
+      "first_seen": "Nov 16 09:15:00",
+      "last_seen": "Nov 16 09:15:15",
+      "total_successes": 0,
+      "successful_users": {},
+      "success_after_failure": false,
+      "password_spray": true,
+      "detections": [
+        "SSH_BRUTE_FORCE",
+        "PASSWORD_SPRAYING"
+      ],
+      "detection_reasons": [
+        "Failed attempts (6) reached brute-force threshold (5)",
+        "Targeted 6 distinct usernames across 6 attempts (spray threshold: 3)"
+      ],
+      "failure_timestamps": [
+        "Nov 16 09:15:00",
+        "Nov 16 09:15:03",
+        "Nov 16 09:15:06",
+        "Nov 16 09:15:09",
+        "Nov 16 09:15:12",
+        "Nov 16 09:15:15"
+      ],
+      "success_timestamps": []
+    },
+    {
+      "source_ip": "198.51.100.77",
+      "total_failures": 5,
+      "targeted_users": {
+        "ubuntu": 5
+      },
+      "first_seen": "Nov 16 10:20:01",
+      "last_seen": "Nov 16 10:20:18",
+      "total_successes": 1,
+      "successful_users": {
+        "ubuntu": 1
+      },
+      "success_after_failure": true,
+      "password_spray": false,
+      "detections": [
+        "SSH_BRUTE_FORCE",
+        "SUCCESS_AFTER_FAILURES"
+      ],
+      "detection_reasons": [
+        "Failed attempts (5) reached brute-force threshold (5)",
+        "CRITICAL: Successful login for account(s) [ubuntu] following 5 failed attempts (repeated failure threshold: 2)"
+      ],
+      "failure_timestamps": [
+        "Nov 16 10:20:01",
+        "Nov 16 10:20:04",
+        "Nov 16 10:20:07",
+        "Nov 16 10:20:10",
+        "Nov 16 10:20:13"
+      ],
+      "success_timestamps": [
+        "Nov 16 10:20:18"
+      ]
+    }
+  ]
+}
